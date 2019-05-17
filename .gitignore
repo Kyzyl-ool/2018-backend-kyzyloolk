@@ -1,0 +1,7 @@
+.idea/
+public/
+config/
+log.txt
+centrifugo/config.json
+*.pyc
+centrifugo/nohup.out

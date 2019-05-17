@@ -1,0 +1,14 @@
+from flask_mail import Message
+from app import mail, app, celery
+
+
+@celery.task()
+def send_mail(subject, sender, recipients, text_body, html_body):
+	msg = Message(subject, sender=sender, recipients=recipients)
+	msg.body = text_body
+	msg.html = html_body
+	with app.app_context():
+		print(subject, sender, recipients, text_body, html_body)
+		mail.send(msg)
+
+
