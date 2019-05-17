@@ -41,7 +41,7 @@ def new_chat(topic, is_group):
             not isNone(topic) and not isNone(is_group) and
             isString(topic) and isString(is_group)
     ):
-        send_mail.delay('TEST', 'alena.eliz.eliz@gmail.com', ['kyzyl.okm@phystech.edu'], "SOME_CONTENT", '<b>123</b>')
+        send_mail.delay('TEST', 'alena.eliz.eliz@gmail.com', ['kyzyl.okm@phystech.edu'], "SOME_CONTENT", '')
         return jsonify(add_new_chat(is_group, topic)).json
     else:
         return {'code': 400}
