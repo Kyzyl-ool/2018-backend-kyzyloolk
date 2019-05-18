@@ -33,7 +33,8 @@ class User(db.Model):
 	nick = db.Column(db.String(255), unique=True, nullable=False)
 	name = db.Column(db.String(255), nullable=False)
 
-	def __init__(self, nick, name):
+	def __init__(self, id, nick, name):
+		self.id = id
 		self.nick = nick
 		self.name = name
 
@@ -53,6 +54,9 @@ class Message(db.Model):
 	def __init__(self, chat_id, user_id, content, sent):
 		if sent is None:
 			self.sent = datetime.utcnow()
+		else:
+			self.sent = sent
+
 		self.chat_id = chat_id
 		self.user_id = user_id
 		self.content = content

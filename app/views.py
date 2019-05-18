@@ -48,7 +48,7 @@ def new_chat(topic, is_group):
 
 
 @jsonrpc.method('new_message')
-def new_message(chat_id, user_id, content, time):
+def new_message(chat_id, user_id, content, time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')):
     # print(chat_id, user_id, content, sep='\n')
     # publish data into channel
 
@@ -57,15 +57,16 @@ def new_message(chat_id, user_id, content, time):
     # cent_client.publish(channel, data)
 
     # the_time = time.strftime('%Y-%m-%d %H:%M:%S')
-    if (time is None):
-        the_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    else:
-        the_time = time
+    # if time is None:
+    #     the_time =
+    # else:
+
+
 
     cent_client.broadcast([str(chat_id)], {
         'user_id': user_id,
         'content': content,
-        'time': the_time,
+        'time': time,
         'spanText': '',
         'id': chat_id
     })
@@ -77,7 +78,7 @@ def new_message(chat_id, user_id, content, time):
             isInt(chat_id) and isInt(user_id) and isString(content)
     ):
         memcache_client.delete('get_messages({})'.format(chat_id))
-        return add_new_message(chat_id, user_id, content, the_time)
+        return add_new_message(chat_id, user_id, content, time)
     else:
         return {'code': 400}
 

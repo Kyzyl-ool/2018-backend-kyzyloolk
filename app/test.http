@@ -11,8 +11,8 @@ Content-Type: application/json
 {
   "jsonrpc": "2.0",
   "id": 0,
-  "method": "new_message",
-  "params": [1, 119451079, "123123", "2019-01-01 20:00:00"]
+  "method": "get_messages",
+  "params": [2]
 }
 
 ###
