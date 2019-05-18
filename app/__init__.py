@@ -53,4 +53,6 @@ cent_client = Client(config.CENTRIFUGO_URL, api_key=config.CENTRIFUGO_API_KEY, t
 #     (re.compile(r'(video|image)\.tasks\..*'), {'queue': 'media'}),
 # ],)
 
+
+
 from .views import *
