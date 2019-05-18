@@ -6,6 +6,10 @@ from flask_cors import CORS
 from cent import Client
 from .flask_celery import make_celery
 from flask_mail import Mail
+from flask_sqlalchemy import SQLAlchemy
+from flask_script import Manager
+from flask_migrate import Migrate, MigrateCommand
+from flask_marshmallow import Marshmallow
 
 
 app = Flask(__name__)
@@ -53,6 +57,16 @@ cent_client = Client(config.CENTRIFUGO_URL, api_key=config.CENTRIFUGO_API_KEY, t
 #     (re.compile(r'(video|image)\.tasks\..*'), {'queue': 'media'}),
 # ],)
 
+#SQLAlchemy configuring
+app.config['SQLALCHEMY_DATABASE_URI'] = config.DATABASE_ADDRESS
+db = SQLAlchemy(app)
+ma = Marshmallow(app)
+migrate = Migrate(db)
+
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
+
 
 
 from .views import *
+from .model import *

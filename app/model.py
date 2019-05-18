@@ -1,119 +1,141 @@
-from .db import *
-from app import app
-
-def get_user():
-    return query_one("""
-    SELECT * FROM "User";
-    """)
+# from .db import *
+from app import app, db, ma
+from datetime import datetime
+import json
 
 
-def get_users_list_by_mask(mask):
-    return query_all("""
-        SELECT * FROM "User"
-        WHERE "name" LIKE %(mask)s;
-    """, mask=str(mask))
+def to_json(inst, cls):
+	"""
+    Jsonify the sql alchemy query result.
+    """
+	convert = dict()
+	# add your coversions for things like datetime
+	# and what-not that aren't serializable.
+	d = dict()
+	for c in cls.__table__.columns:
+		v = getattr(inst, c.name)
+		if c.type in convert.keys() and v is not None:
+			try:
+				d[c.name] = convert[c.type](v)
+			except:
+				d[c.name] = "Error:  Failed to covert using ", str(convert[c.type])
+		elif v is None:
+			d[c.name] = str()
+		else:
+			d[c.name] = v
+	return json.dumps(d)
 
 
-def get_chats_list():
-    return query_all("""
-		SELECT * FROM "Chat";
-	""")
+class User(db.Model):
+	__tablename__ = 'User'
+
+	id = db.Column(db.Integer, primary_key=True)
+	nick = db.Column(db.String(255), unique=True, nullable=False)
+	name = db.Column(db.String(255), nullable=False)
+
+	def __init__(self, nick, name):
+		self.nick = nick
+		self.name = name
+
+	def __repr__(self):
+		return to_json(self, self.__class__)
 
 
-def get_members_list(user_id):
-    return query_all("""
-		SELECT topic, "Chat".chat_id FROM "Chat"
-		JOIN "Member" ON "Chat".chat_id = "Member".chat_id
-		AND user_id = %(user_id)s;
-	""",
-                     user_id=user_id)
+class Message(db.Model):
+	__tablename__ = 'Message'
+
+	id = db.Column(db.Integer, primary_key=True)
+	chat_id = db.Column(db.Integer, db.ForeignKey('Chat.id'))
+	user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+	content = db.Column(db.Text, nullable=False)
+	sent = db.Column(db.DateTime, nullable=False)
+
+	def __init__(self, chat_id, user_id, content, sent):
+		if sent is None:
+			self.sent = datetime.utcnow()
+		self.chat_id = chat_id
+		self.user_id = user_id
+		self.content = content
+
+	def __repr__(self):
+		return to_json(self, self.__class__)
 
 
-def add_new_chat(is_group_chat, topic):
-    t = query_all("""
-		INSERT INTO "Chat" (is_group_chat, topic, last_message) VALUES (%(is_group_chat)s, %(topic)s, NULL)
-		RETURNING chat_id;
-	""",
-                  is_group_chat=str(is_group_chat),
-                  topic=str(topic))
-    commit()
-    return t
+
+class Attachment(db.Model):
+	__tablename__ = 'Attachment'
+
+	id = db.Column(db.Integer, primary_key=True)
+	chat_id = db.Column(db.Integer, db.ForeignKey('Chat.id'))
+	user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+	message_id = db.Column(db.Integer, db.ForeignKey('Message.id'))
+	type = db.Column(db.String(255), nullable=False)
+	url = db.Column(db.String(255), nullable=False)
+	size = db.Column(db.Integer, nullable=False)
+
+	def __init__(self, chat_id, user_id, message_id, type, url, size):
+		self.chat_id = chat_id
+		self.user_id = user_id
+		self.message_id = message_id
+		self.type = type
+		self.url = url
+		self.size = size
+
+	def __repr__(self):
+		return to_json(self, self.__class__)
 
 
-def add_new_message(chat_id, user_id, content, sent):
-    t = query_all("""
-		INSERT INTO "Message" (chat_id, user_id, content, sent) VALUES (%(chat_id)s, %(user_id)s, %(content)s, %(sent)s)
-		returning message_id;
-		""",
-                  chat_id=int(chat_id), user_id=int(user_id), content=str(content), sent=sent
-                  )
+class Chat(db.Model):
+	__tablename__ = 'Chat'
 
-    commit()
-    return t
+	id = db.Column(db.Integer, primary_key=True)
+	is_group = db.Column(db.Boolean)
+	topic = db.Column(db.String(255), nullable=False)
+	last_message = db.Column(db.Integer, db.ForeignKey('Message.id'))
 
+	def __init__(self, is_group, topic, last_message):
+		self.is_group = is_group
+		self.topic = topic
+		self.last_message = last_message
 
-def add_new_file_message(chat_id, user_id, content, sent, filename, type, size):
-    m = add_new_message(chat_id, user_id, content, sent)
-    print(m)
-
-    mid = m[0]['message_id']
-    t = query_all("""
-    INSERT INTO "Attachment" (chat_id, user_id, message_id, type, url, size)
-    values (%(chat_id)s, %(user_id)s, %(message_id)s, %(type)s, %(filename)s, %(size)s) 
-    returning attach_id;
-    """,
-                  chat_id=int(chat_id),
-                  user_id=int(user_id),
-                  message_id=int(mid),
-                  type=str(type),
-                  filename=str(filename),
-                  size=int(size)
-                  )
-    commit()
-    return t
+	def __repr__(self):
+		return to_json(self, self.__class__)
 
 
-def get_messages(chat_id):
-    return query_all("""
-    SELECT content, "Message".sent, "Message".user_id, "Message".message_id, type, url, size
-    FROM "Message" LEFT JOIN "Attachment" ON "Attachment".message_id = "Message".message_id
-    WHERE "Message".chat_id = %(chat_id)s
-    ORDER BY 4;
-    """, chat_id=int(chat_id)
-                     )
+class Member(db.Model):
+	__tablename__ = 'Member'
+
+	id = db.Column(db.Integer, primary_key=True)
+	chat_id = db.Column(db.Integer, db.ForeignKey('Chat.id'))
+	user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+	last_unread_message_id = db.Column(db.Integer, db.ForeignKey('Message.id'))
+
+	def __init__(self, chat_id, user_id, last_unread_message_id):
+		self.chat_id = chat_id
+		self.user_id = user_id
+		self.last_unread_message_id = last_unread_message_id
+
+	def __repr__(self):
+		return to_json(self, self.__class__)
 
 
-    # return query_all("""
-	# SELECT content, sent, user_id, message_id FROM "Message"
-	# WHERE chat_id = %(chat_id)s;
-	# """, chat_id=int(chat_id))
+class MessageSchema(ma.ModelSchema):
+	class Meta:
+		model = Message
+
+class AttachmentSchema(ma.ModelSchema):
+	class Meta:
+		model = Attachment
 
 
-def add_new_member_to_chat(user_id, chat_id):
-    t = query_all("""
-    INSERT INTO "Member" VALUES (%(user_id)s, %(chat_id)s, NULL) RETURNING member_id;
-    """, user_id=int(user_id), chat_id=int(chat_id))
-    commit()
-    return t
+class ChatSchema(ma.ModelSchema):
+	class Meta:
+		model = Chat
 
+class MemberSchema(ma.ModelSchema):
+	class Meta:
+		model = Member
 
-def check_user_existance(user_id):
-    return query_all("""
-    SELECT * FROM "User"
-    WHERE user_id = %(user_id)s;
-    """, user_id=int(user_id))
-
-
-def create_user(user_id, name, nick):
-    t = query_all("""
-    INSERT INTO "User" (user_id, name, nick) VALUES (%(user_id)s, %(name)s, %(nick)s) RETURNING user_id;
-    """,
-                  user_id=int(user_id), name=str(name), nick=str(nick))
-    commit()
-    return t
-
-
-def get_name_by_id(user_id):
-    return query_all("""
-    SELECT name FROM "User" WHERE user_id = %(user_id)s;
-    """, user_id=int(user_id))
+class UserSchema(ma.ModelSchema):
+	class Meta:
+		model = User

@@ -1,6 +1,6 @@
 from flask import request, abort, jsonify, redirect
 from app import app, jsonrpc, s3_client, cent_client
-from .model import *
+from .db import *
 from .vk_requests import *
 from .checkers import *
 from .tasks import *
@@ -41,7 +41,7 @@ def new_chat(topic, is_group):
             not isNone(topic) and not isNone(is_group) and
             isString(topic) and isString(is_group)
     ):
-        send_mail.delay('Messagee has been sent', 'alena.eliz.eliz@gmail.com', ['kyzyl.okm@phystech.edu'], "topic is \"{}\"".format(topic), '')
+        # send_mail.delay('Messagee has been sent', 'alena.eliz.eliz@gmail.com', ['kyzyl.okm@phystech.edu'], "topic is \"{}\"".format(topic), '')
         return jsonify(add_new_chat(is_group, topic)).json
     else:
         return {'code': 400}
@@ -57,7 +57,10 @@ def new_message(chat_id, user_id, content, time):
     # cent_client.publish(channel, data)
 
     # the_time = time.strftime('%Y-%m-%d %H:%M:%S')
-    the_time = time
+    if (time is None):
+        the_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        the_time = time
 
     cent_client.broadcast([str(chat_id)], {
         'user_id': user_id,
@@ -119,6 +122,11 @@ def get_users(mask):
 @jsonrpc.method('get_chats')
 def get_chats(user_id):
     return jsonify(get_members_list(user_id)).json
+
+
+@jsonrpc.method('get_all_chats')
+def method_get_all_chats():
+    return jsonify(get_chats_list()).json
 
 
 @jsonrpc.method('get_messages')
