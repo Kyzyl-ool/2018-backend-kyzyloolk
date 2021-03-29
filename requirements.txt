@@ -79,7 +79,7 @@ psycopg2-binary==2.8.2
 ptyprocess==0.6.0
 py==1.6.0
 pycparser==2.19
-Pygments==2.2.0
+Pygments==2.7.4
 PyJWT==1.6.4
 pylint==2.1.1
 pymemcache==2.1.1
