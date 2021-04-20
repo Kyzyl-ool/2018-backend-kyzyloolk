@@ -77,7 +77,7 @@ prompt-toolkit==1.0.15
 psycopg2==2.7.5
 psycopg2-binary==2.8.2
 ptyprocess==0.6.0
-py==1.6.0
+py==1.10.0
 pycparser==2.19
 Pygments==2.2.0
 PyJWT==1.6.4
