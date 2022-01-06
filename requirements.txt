@@ -13,7 +13,7 @@ bleach==2.1.4
 blinker==1.4
 boto3==1.9.57
 botocore==1.12.57
-celery==4.3.0
+celery==5.2.2
 cent==3.0.0
 certifi==2018.4.16
 cffi==1.11.5
